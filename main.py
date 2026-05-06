@@ -204,4 +204,4 @@ class App(tk.Tk):
         self.combo_status.set(vals[6])
 
 if __name__ == "__main__":
-    App().mainloop()
+    App().mainloop() 
