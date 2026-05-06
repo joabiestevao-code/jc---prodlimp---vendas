@@ -37,7 +37,7 @@ class App(tk.Tk):
     def _build_ui(self):
         header = tk.Frame(self, bg="#1a56a0", height=60)
         header.pack(fill="x")
-        tk.Label(header, text="🧴 JC Prodlimp — Sistema de Vendas",
+        tk.Label(header, text="JC Prodlimp — Sistema de Vendas",
                  bg="#1a56a0", fg="white",
                  font=("Arial", 16, "bold")).pack(side="left", padx=20, pady=12)
 
@@ -50,7 +50,7 @@ class App(tk.Tk):
         form_frame.pack(side="left", fill="y", padx=(0,15), ipadx=10, ipady=10)
 
         campos = [("Cliente:", "entry_cliente"), ("Produto:", "entry_produto"),
-                  ("Quantidade:", "entry_qtd"), ("Valor unitário (R$):", "entry_valor")]
+                  ("Quantidade:", "entry_qtd"), ("Valor unitario (R$):", "entry_valor")]
 
         for i, (label, attr) in enumerate(campos):
             tk.Label(form_frame, text=label, bg="#f0f4f8",
@@ -70,13 +70,18 @@ class App(tk.Tk):
         btn_frame = tk.Frame(form_frame, bg="#f0f4f8")
         btn_frame.grid(row=5, column=0, columnspan=2, pady=14)
 
-        for txt, cmd, cor in [("➕ Adicionar", self.add_pedido, "#1a56a0"),
-                               ("✏️ Atualizar", self.update_pedido, "#2e75b6"),
-                               ("🗑️ Excluir", self.delete_pedido, "#c0392b"),
-                               ("🔄 Limpar", self.clear_form, "#7f8c8d")]:
-            tk.Button(btn_frame, text=txt, command=cmd, bg=cor, fg="white",
-                      font=("Arial", 10, "bold"), width=12,
-                      cursor="hand2", relief="flat").pack(side="left", padx=4)
+        tk.Button(btn_frame, text="Adicionar", command=self.add_pedido,
+                  bg="#1a56a0", fg="white", font=("Arial", 10, "bold"),
+                  width=12, cursor="hand2", relief="flat").pack(side="left", padx=4)
+        tk.Button(btn_frame, text="Atualizar", command=self.update_pedido,
+                  bg="#2e75b6", fg="white", font=("Arial", 10, "bold"),
+                  width=12, cursor="hand2", relief="flat").pack(side="left", padx=4)
+        tk.Button(btn_frame, text="Excluir", command=self.delete_pedido,
+                  bg="#c0392b", fg="white", font=("Arial", 10, "bold"),
+                  width=12, cursor="hand2", relief="flat").pack(side="left", padx=4)
+        tk.Button(btn_frame, text="Limpar", command=self.clear_form,
+                  bg="#7f8c8d", fg="white", font=("Arial", 10, "bold"),
+                  width=12, cursor="hand2", relief="flat").pack(side="left", padx=4)
 
         self.lbl_total = tk.Label(form_frame, text="Total: R$ 0,00",
                                   bg="#f0f4f8", fg="#1a56a0", font=("Arial", 11, "bold"))
@@ -84,61 +89,4 @@ class App(tk.Tk):
 
         table_frame = tk.LabelFrame(body, text=" Pedidos ", bg="#f0f4f8",
                                     fg="#1a56a0", font=("Arial", 11, "bold"), bd=2)
-        table_frame.pack(side="left", fill="both", expand=True)
-
-        cols = ("ID","Cliente","Produto","Qtd","Unit (R$)","Total (R$)","Status","Data")
-        self.tree = ttk.Treeview(table_frame, columns=cols, show="headings", height=18)
-        for col, w in zip(cols, [40,130,140,50,80,90,100,90]):
-            self.tree.heading(col, text=col)
-            self.tree.column(col, width=w, anchor="center")
-        self.tree.tag_configure("even", background="#dce8f7")
-        self.tree.tag_configure("odd", background="white")
-        scroll = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
-        self.tree.configure(yscrollcommand=scroll.set)
-        self.tree.pack(side="left", fill="both", expand=True, padx=6, pady=6)
-        scroll.pack(side="right", fill="y", pady=6)
-        self.tree.bind("<<TreeviewSelect>>", self.on_select)
-
-        footer = tk.Frame(self, bg="#1a56a0", height=30)
-        footer.pack(fill="x", side="bottom")
-        self.lbl_summary = tk.Label(footer, text="", bg="#1a56a0", fg="white", font=("Arial", 9))
-        self.lbl_summary.pack(side="right", padx=16, pady=5)
-
-    def add_pedido(self):
-        data = self._get_form()
-        if not data: return
-        conn = get_conn()
-        conn.execute("INSERT INTO pedidos (cliente,produto,quantidade,valor_unit,total,status,data) VALUES (?,?,?,?,?,?,?)", data)
-        conn.commit(); conn.close()
-        self.load_pedidos(); self.clear_form()
-        messagebox.showinfo("Sucesso", "Pedido adicionado!")
-
-    def update_pedido(self):
-        sel = self.tree.selection()
-        if not sel: messagebox.showwarning("Atenção","Selecione um pedido."); return
-        pid = self.tree.item(sel[0])["values"][0]
-        data = self._get_form()
-        if not data: return
-        conn = get_conn()
-        conn.execute("UPDATE pedidos SET cliente=?,produto=?,quantidade=?,valor_unit=?,total=?,status=?,data=? WHERE id=?", (*data, pid))
-        conn.commit(); conn.close()
-        self.load_pedidos()
-        messagebox.showinfo("Sucesso","Pedido atualizado!")
-
-    def delete_pedido(self):
-        sel = self.tree.selection()
-        if not sel: messagebox.showwarning("Atenção","Selecione um pedido."); return
-        pid = self.tree.item(sel[0])["values"][0]
-        if not messagebox.askyesno("Confirmar","Excluir este pedido?"): return
-        conn = get_conn()
-        conn.execute("DELETE FROM pedidos WHERE id=?", (pid,))
-        conn.commit(); conn.close()
-        self.load_pedidos(); self.clear_form()
-
-    def load_pedidos(self):
-        for row in self.tree.get_children(): self.tree.delete(row)
-        conn = get_conn()
-        rows = conn.execute("SELECT * FROM pedidos ORDER BY id DESC").fetchall()
-        conn.close()
-        total_geral = 0
-        for i, row in enumerate(rows):
+        table_frame
